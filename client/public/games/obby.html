@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Epic Obby - Demo</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; overflow: hidden; background: #000; font-family: system-ui, sans-serif; }
+canvas { display: block; margin: 0 auto; background: #87ceeb; border: 2px solid #333; }
+#ui { position: absolute; top: 12px; left: 12px; color: #fff; font-weight: 800; font-size: 16px; text-shadow: 1px 1px 0 #000; pointer-events: none; }
+#msg { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); color: #fff; font-weight: 900; font-size: 32px; text-align: center; text-shadow: 2px 2px 0 #000; display: none; pointer-events: none; }
+#msg.show { display: block; }
+.hint { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); color: #fff; font-size: 13px; text-shadow: 1px 1px 0 #000; pointer-events: none; opacity: 0.8; }
+</style>
+</head>
+<body>
+<div id="ui">Bölüm: <span id="level">1</span></div>
+<div id="msg">KAZANANDIN!</div>
+<div class="hint">Tuşlar: Oklar / WASD · Zıpla: Boşluk</div>
+<canvas id="c"></canvas>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const levelEl = document.getElementById('level');
+const msg = document.getElementById('msg');
+
+let W, H;
+function resize(){ W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+window.addEventListener('resize', resize);
+resize();
+
+const keys = {};
+window.addEventListener('keydown', e => keys[e.code] = true);
+window.addEventListener('keyup', e => keys[e.code] = false);
+
+const player = { x: 60, y: H - 120, w: 30, h: 30, vy: 0, onGround: false, color: '#ff0055' };
+
+const levels = [
+  {
+    plats: [ [0, H-60, W, 60], [200, H-180, 120, 20], [400, H-280, 120, 20], [620, H-180, 140, 20], [850, H-260, 120, 20], [1050, H-140, 200, 20] ],
+    goal: [1100, H-180, 60, 60]
+  },
+  {
+    plats: [ [0, H-60, W, 60], [150, H-140, 100, 20], [350, H-220, 100, 20], [550, H-140, 120, 20], [760, H-240, 100, 20], [950, H-140, 140, 20], [1150, H-220, 100, 20] ],
+    goal: [1220, H-280, 50, 50]
+  },
+  {
+    plats: [ [0, H-60, W, 60], [100, H-160, 80, 20], [260, H-260, 80, 20], [420, H-160, 100, 20], [600, H-260, 80, 20], [780, H-160, 120, 20], [960, H-260, 100, 20], [1120, H-160, 140, 20] ],
+    goal: [1230, H-220, 50, 50]
+  }
+];
+let levelIndex = 0;
+
+function resetPlayer() {
+  const p = levels[levelIndex].plats[0];
+  player.x = p[0] + 40;
+  player.y = p[1] - player.h;
+  player.vy = 0;
+}
+
+function rectIntersect(a, b) {
+  return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+}
+
+function update() {
+  const g = 0.6;
+  const speed = 5;
+  const jump = -12;
+
+  if ((keys['ArrowRight'] || keys['KeyD'])) player.x += speed;
+  if ((keys['ArrowLeft'] || keys['KeyA'])) player.x -= speed;
+  if ((keys['ArrowUp'] || keys['KeyW'] || keys['Space']) && player.onGround) {
+    player.vy = jump;
+    player.onGround = false;
+  }
+
+  player.vy += g;
+  player.y += player.vy;
+  player.onGround = false;
+
+  const pr = { x: player.x, y: player.y, w: player.w, h: player.h };
+  for (const p of levels[levelIndex].plats) {
+    const r = { x: p[0], y: p[1], w: p[2], h: p[3] };
+    if (rectIntersect(pr, r) && player.vy >= 0 && player.y + player.h <= p[1] + 10) {
+      player.y = p[1] - player.h;
+      player.vy = 0;
+      player.onGround = true;
+    }
+  }
+
+  if (player.y > H) resetPlayer();
+
+  const goal = levels[levelIndex].goal;
+  if (rectIntersect(pr, { x: goal[0], y: goal[1], w: goal[2], h: goal[3] })) {
+    levelIndex++;
+    if (levelIndex >= levels.length) {
+      msg.classList.add('show');
+      setTimeout(() => { levelIndex = 0; msg.classList.remove('show'); resetPlayer(); }, 2000);
+    } else {
+      levelEl.textContent = levelIndex + 1;
+      resetPlayer();
+    }
+  }
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#2d6a4f';
+  for (const p of levels[levelIndex].plats) {
+    ctx.fillRect(p[0], p[1], p[2], p[3]);
+    ctx.strokeStyle = '#1b4332';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(p[0], p[1], p[2], p[3]);
+  }
+  const g = levels[levelIndex].goal;
+  ctx.fillStyle = '#ffd700';
+  ctx.fillRect(g[0], g[1], g[2], g[3]);
+  ctx.strokeStyle = '#b8860b';
+  ctx.strokeRect(g[0], g[1], g[2], g[3]);
+
+  ctx.fillStyle = player.color;
+  ctx.fillRect(player.x, player.y, player.w, player.h);
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(player.x, player.y, player.w, player.h);
+}
+
+function loop() { update(); draw(); requestAnimationFrame(loop); }
+resetPlayer();
+loop();
+</script>
+</body>
+</html>
