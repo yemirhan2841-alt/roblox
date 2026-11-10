@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neon Adventure - Demo</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; overflow: hidden; background: #05050a; font-family: system-ui, sans-serif; color: #fff; }
+canvas { display: block; margin: 0 auto; background: #0a0a15; border: 2px solid #222; }
+#ui { position: absolute; top: 12px; left: 12px; font-size: 16px; font-weight: 800; color: #00d2ff; text-shadow: 0 0 10px #00d2ff; pointer-events: none; }
+#hint { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); font-size: 13px; color: #666; pointer-events: none; }
+</style>
+</head>
+<body>
+<div id="ui">Toplanan: <span id="coins">0</span> / 10</div>
+<div id="hint">Oklar / WASD · Tüm altınları topla</div>
+<canvas id="c"></canvas>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let W, H;
+function resize(){ W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+window.addEventListener('resize', resize);
+resize();
+
+const keys = {};
+window.addEventListener('keydown', e => keys[e.code] = true);
+window.addEventListener('keyup', e => keys[e.code] = false);
+
+const player = { x: 60, y: H - 120, w: 24, h: 24, vy: 0, onGround: false, color: '#00d2ff' };
+let coins = 0;
+const coinEls = document.getElementById('coins');
+
+const platforms = [ [0, H-60, W, 60], [250, H-180, 140, 20], [500, H-260, 140, 20], [750, H-180, 160, 20], [1000, H-280, 140, 20] ];
+let coinsList = [
+  { x: 320, y: H-220, r: 8, taken: false },
+  { x: 570, y: H-300, r: 8, taken: false },
+  { x: 830, y: H-220, r: 8, taken: false },
+  { x: 1070, y: H-320, r: 8, taken: false },
+  { x: 150, y: H-100, r: 8, taken: false }
+];
+
+function rectIntersect(a, b) { return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y; }
+
+function update() {
+  if ((keys['ArrowRight'] || keys['KeyD'])) player.x += 5;
+  if ((keys['ArrowLeft'] || keys['KeyA'])) player.x -= 5;
+  if ((keys['ArrowUp'] || keys['KeyW'] || keys['Space']) && player.onGround) { player.vy = -12; player.onGround = false; }
+
+  player.vy += 0.6;
+  player.y += player.vy;
+  player.onGround = false;
+
+  const pr = { x: player.x, y: player.y, w: player.w, h: player.h };
+  platforms.forEach(p => {
+    const r = { x: p[0], y: p[1], w: p[2], h: p[3] };
+    if (rectIntersect(pr, r) && player.vy >= 0 && player.y + player.h <= p[1] + 10) {
+      player.y = p[1] - player.h; player.vy = 0; player.onGround = true;
+    }
+  });
+  if (player.y > H) { player.x = 60; player.y = H - 120; player.vy = 0; }
+
+  coinsList.forEach(c => {
+    if (!c.taken) {
+      const dx = (player.x + player.w/2) - c.x;
+      const dy = (player.y + player.h/2) - c.y;
+      if (Math.hypot(dx, dy) < 26) { c.taken = true; coins++; coinEls.textContent = coins; }
+    }
+  });
+}
+
+function draw() {
+  ctx.fillStyle = '#0a0a15';
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#1a1a2e';
+  platforms.forEach(p => { ctx.fillRect(p[0], p[1], p[2], p[3]); ctx.strokeStyle='#222'; ctx.strokeRect(p[0], p[1], p[2], p[3]); });
+
+  ctx.fillStyle = '#ffd700';
+  coinsList.forEach(c => { if (!c.taken) { ctx.beginPath(); ctx.arc(c.x, c.y, c.r, 0, Math.PI*2); ctx.fill(); ctx.strokeStyle='#b8860b'; ctx.stroke(); } });
+
+  ctx.fillStyle = player.color;
+  ctx.fillRect(player.x, player.y, player.w, player.h);
+  ctx.strokeStyle = '#fff'; ctx.strokeRect(player.x, player.y, player.w, player.h);
+}
+
+function loop() { update(); draw(); requestAnimationFrame(loop); }
+loop();
+</script>
+</body>
+</html>
