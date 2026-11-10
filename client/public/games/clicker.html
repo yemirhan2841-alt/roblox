@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mega Clicker - Demo</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; background: #0f0f12; color: #f0f0f0; font-family: system-ui, sans-serif; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+#score { font-size: 48px; font-weight: 900; margin-bottom: 20px; text-shadow: 0 0 20px #ff0055; }
+#btn { width: 180px; height: 180px; border-radius: 50%; background: linear-gradient(135deg, #ff0055, #ff3370); border: none; color: #fff; font-weight: 900; font-size: 20px; cursor: pointer; box-shadow: 0 0 30px rgba(255,0,85,0.6); transition: transform 0.05s; outline: none; }
+#btn:active { transform: scale(0.9); }
+#cps { margin-top: 10px; color: #a0a0a8; font-size: 16px; }
+#upgrades { position: absolute; bottom: 40px; display: flex; gap: 12px; }
+.upg { padding: 8px 14px; border: 1px solid #2a2a33; border-radius: 8px; background: #1a1a1f; color: #fff; font-size: 13px; cursor: pointer; }
+.upg:hover { border-color: #ff0055; }
+.upg:disabled { opacity: 0.5; cursor: not-allowed; }
+</style>
+</head>
+<body>
+<div id="score">0</div>
+<button id="btn">TIKLA</button>
+<div id="cps">Sn başına: 0</div>
+<div id="upgrades">
+  <button class="upg" id="up1" onclick="buy(1)">Otomatik Tıklayıcı (10)</button>
+  <button class="upg" id="up2" onclick="buy(2)">Süper Tıklayıcı (50)</button>
+</div>
+<script>
+let score = 0;
+let cps = 0;
+const scoreEl = document.getElementById('score');
+const btn = document.getElementById('btn');
+const cpsEl = document.getElementById('cps');
+
+function format(n) { return n.toLocaleString(); }
+function updateUI() {
+  scoreEl.textContent = Math.floor(score);
+  cpsEl.textContent = 'Sn başına: ' + format(cps);
+  document.getElementById('up1').disabled = score < 10;
+  document.getElementById('up2').disabled = score < 50;
+}
+
+let last = performance.now();
+function loop(now) {
+  const dt = (now - last) / 1000;
+  last = now;
+  score += cps * dt;
+  updateUI();
+  requestAnimationFrame(loop);
+}
+
+btn.addEventListener('mousedown', () => { score += 1 + Math.floor(cps/10); updateUI(); });
+btn.addEventListener('touchstart', e => { e.preventDefault(); score += 1 + Math.floor(cps/10); updateUI(); }, {passive:false});
+
+function buy(id) {
+  if (id === 1 && score >= 10) { score -= 10; cps += 1; }
+  if (id === 2 && score >= 50) { score -= 50; cps += 5; }
+  updateUI();
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
