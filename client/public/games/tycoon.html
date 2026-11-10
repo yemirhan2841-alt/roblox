@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cash Tycoon - Demo</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; overflow: hidden; background: #0b0f12; color: #f0f0f0; font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+#cash { font-size: 48px; font-weight: 900; margin-bottom: 10px; text-shadow: 0 0 20px #00d26a; color: #00d26a; }
+#per { margin-bottom: 30px; color: #a0a0a8; font-size: 18px; }
+#btn { width: 170px; height: 170px; border-radius: 50%; background: linear-gradient(135deg, #00d26a, #2ecc71); border: none; color: #fff; font-weight: 900; font-size: 18px; cursor: pointer; box-shadow: 0 0 30px rgba(0,210,106,0.6); transition: transform 0.05s; outline: none; }
+#btn:active { transform: scale(0.9); }
+#upg { position: absolute; bottom: 40px; display: flex; gap: 12px; }
+.upg { padding: 8px 14px; border: 1px solid #2a2a33; border-radius: 8px; background: #13191e; color: #fff; font-size: 13px; cursor: pointer; }
+.upg:hover { border-color: #00d26a; }
+.upg:disabled { opacity: 0.5; cursor: not-allowed; }
+</style>
+</head>
+<body>
+<div id="cash">0 $</div>
+<div id="per">Günlük: 0 $</div>
+<button id="btn">PARA KAZAN</button>
+<div id="upg">
+  <button class="upg" id="u1" onclick="buy(1)">Mağaza (30)</button>
+  <button class="upg" id="u2" onclick="buy(2)">Kule (150)</button>
+</div>
+<script>
+let cash = 0;
+let per = 0;
+const cashEl = document.getElementById('cash');
+const perEl = document.getElementById('per');
+const btn = document.getElementById('btn');
+
+function update() {
+  cashEl.textContent = Math.floor(cash).toLocaleString() + ' $';
+  perEl.textContent = 'Günlük: ' + Math.floor(per).toLocaleString() + ' $';
+  document.getElementById('u1').disabled = cash < 30;
+  document.getElementById('u2').disabled = cash < 150;
+}
+
+let last = performance.now();
+function loop(now) {
+  const dt = (now - last) / 1000;
+  last = now;
+  cash += per * dt;
+  update();
+  requestAnimationFrame(loop);
+}
+
+btn.addEventListener('mousedown', () => { cash += 1 + Math.floor(per); update(); });
+btn.addEventListener('touchstart', e => { e.preventDefault(); cash += 1 + Math.floor(per); update(); }, {passive:false});
+
+function buy(id) {
+  if (id === 1 && cash >= 30) { cash -= 30; per += 2; }
+  if (id === 2 && cash >= 150) { cash -= 150; per += 10; }
+  update();
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
