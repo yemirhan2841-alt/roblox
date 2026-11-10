@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Street Fight - Demo</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; overflow: hidden; background: #111; font-family: system-ui, sans-serif; color: #fff; }
+canvas { display: block; margin: 0 auto; background: #1a1a1f; border: 2px solid #333; }
+#ui { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); display: flex; gap: 40px; font-size: 22px; font-weight: 900; pointer-events: none; text-shadow: 2px 2px 0 #000; }
+.bar { width: 260px; height: 18px; border: 2px solid #fff; margin-top: 6px; }
+.fill { height: 100%; width: 100%; transition: width 0.1s; }
+.p1fill { background: #ff0055; }
+.p2fill { background: #00d26a; }
+#hint { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); font-size: 13px; color: #888; pointer-events: none; }
+#msg { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 44px; font-weight: 900; color: #fff; text-shadow: 3px 3px 0 #000; display: none; text-align: center; }
+#msg.show { display: block; }
+</style>
+</head>
+<body>
+<div id="ui">
+  <div><div>OYUNCU 1</div><div class="bar"><div class="fill p1fill" id="p1bar"></div></div></div>
+  <div><div>OYUNCU 2</div><div class="bar"><div class="fill p2fill" id="p2bar"></div></div></div>
+</div>
+<div id="msg">KO!</div>
+<div id="hint">P1: A/D hareket, W saldırı &nbsp;|&nbsp; P2: Oklar hareket, Üst Ok saldırı</div>
+<canvas id="c"></canvas>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let W, H;
+function resize(){ W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+window.addEventListener('resize', resize);
+resize();
+
+const keys = {};
+window.addEventListener('keydown', e => keys[e.code] = true);
+window.addEventListener('keyup', e => keys[e.code] = false);
+
+const p1 = { x: 120, y: H - 140, w: 34, h: 60, hp: 100, color: '#ff0055', dir: 1, attacking: false };
+const p2 = { x: W - 154, y: H - 140, w: 34, h: 60, hp: 100, color: '#00d26a', dir: -1, attacking: false };
+
+function rectIntersect(a, b) { return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y; }
+
+function update() {
+  const speed = 6;
+  if (keys['KeyA']) { p1.x -= speed; p1.dir = -1; }
+  if (keys['KeyD']) { p1.x += speed; p1.dir = 1; }
+  if (keys['KeyW']) p1.attacking = true;
+  p1.x = Math.max(20, Math.min(W/2 - 60, p1.x));
+  p1.y = H - 140;
+
+  if (keys['ArrowLeft']) { p2.x -= speed; p2.dir = -1; }
+  if (keys['ArrowRight']) { p2.x += speed; p2.dir = 1; }
+  if (keys['ArrowUp']) p2.attacking = true;
+  p2.x = Math.max(W/2 + 20, Math.min(W - 54, p2.x));
+  p2.y = H - 140;
+
+  if (p1.attacking) {
+    const hitbox = { x: p1.x + (p1.dir === 1 ? p1.w : -40), y: p1.y + 10, w: 40, h: 40 };
+    if (rectIntersect(hitbox, p2)) p2.hp -= 0.6;
+    p1.attacking = false;
+  }
+  if (p2.attacking) {
+    const hitbox = { x: p2.x + (p2.dir === 1 ? p2.w : -40), y: p2.y + 10, w: 40, h: 40 };
+    if (rectIntersect(hitbox, p1)) p1.hp -= 0.6;
+    p2.attacking = false;
+  }
+
+  document.getElementById('p1bar').style.width = Math.max(0, p1.hp) + '%';
+  document.getElementById('p2bar').style.width = Math.max(0, p2.hp) + '%';
+
+  const msg = document.getElementById('msg');
+  if (p1.hp <= 0 || p2.hp <= 0) {
+    msg.classList.add('show');
+    msg.textContent = p1.hp <= 0 ? 'OYUNCU 2 KAZANDI' : 'OYUNCU 1 KAZANDI';
+    setTimeout(() => { p1.hp = 100; p2.hp = 100; msg.classList.remove('show'); }, 2000);
+  }
+}
+
+function draw() {
+  ctx.fillStyle = '#1a1a1f';
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#222';
+  ctx.fillRect(0, H - 120, W, 120);
+
+  ctx.fillStyle = p1.color;
+  ctx.fillRect(p1.x, p1.y, p1.w, p1.h);
+  ctx.fillStyle = p2.color;
+  ctx.fillRect(p2.x, p2.y, p2.w, p2.h);
+}
+
+function loop() { update(); draw(); requestAnimationFrame(loop); }
+loop();
+</script>
+</body>
+</html>
