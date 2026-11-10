@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pong - Demo</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; overflow: hidden; background: #000; font-family: system-ui, sans-serif; }
+canvas { display: block; margin: 0 auto; background: #111; border: 2px solid #333; }
+#ui { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); color: #fff; font-weight: 800; font-size: 24px; pointer-events: none; text-shadow: 1px 1px 0 #000; }
+#msg { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); color: #fff; font-weight: 900; font-size: 40px; text-align: center; text-shadow: 2px 2px 0 #000; display: none; }
+#msg.show { display: block; }
+</style>
+</head>
+<body>
+<div id="ui">0 &nbsp;|&nbsp; 0</div>
+<div id="msg">OYUN BİTTİ</div>
+<canvas id="c"></canvas>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const ui = document.getElementById('ui');
+const msg = document.getElementById('msg');
+let W, H;
+function resize(){ W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+window.addEventListener('resize', resize);
+resize();
+
+const keys = {};
+window.addEventListener('keydown', e => keys[e.code] = true);
+window.addEventListener('keyup', e => keys[e.code] = false);
+
+let p1 = { x: 20, y: H/2 - 60, w: 14, h: 120, score: 0, color: '#ff0055' };
+let p2 = { x: W - 34, y: H/2 - 60, w: 14, h: 120, score: 0, color: '#00d26a' };
+let ball = { x: W/2, y: H/2, r: 10, vx: 6, vy: 4 };
+
+function rectIntersect(a, b) { return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y; }
+
+function resetBall(dir) {
+  ball.x = W/2; ball.y = H/2;
+  ball.vx = 6 * dir; ball.vy = (Math.random() - 0.5) * 6;
+}
+
+function update() {
+  if (keys['KeyW']) p1.y -= 6;
+  if (keys['KeyS']) p1.y += 6;
+  p1.y = Math.max(0, Math.min(H - p1.h, p1.y));
+
+  if (keys['ArrowUp']) p2.y -= 6;
+  if (keys['ArrowDown']) p2.y += 6;
+  p2.y = Math.max(0, Math.min(H - p2.h, p2.y));
+  const target = ball.y - p2.h/2;
+  if (p2.y < target - 5) p2.y += 4;
+  if (p2.y > target + 5) p2.y -= 4;
+  p2.y = Math.max(0, Math.min(H - p2.h, p2.y));
+
+  ball.x += ball.vx;
+  ball.y += ball.vy;
+
+  if (ball.y - ball.r < 0 || ball.y + ball.r > H) ball.vy *= -1;
+
+  if (rectIntersect(ball, p1) && ball.vx < 0) {
+    ball.vx *= -1.1;
+    ball.vy += (ball.y - (p1.y + p1.h/2)) * 0.15;
+  }
+  if (rectIntersect(ball, p2) && ball.vx > 0) {
+    ball.vx *= -1.1;
+    ball.vy += (ball.y - (p2.y + p2.h/2)) * 0.15;
+  }
+
+  if (ball.x < -50) { p2.score++; resetBall(1); }
+  if (ball.x > W + 50) { p1.score++; resetBall(-1); }
+
+  ui.textContent = p1.score + '   |   ' + p2.score;
+  if (p1.score >= 5 || p2.score >= 5) {
+    msg.classList.add('show');
+    msg.textContent = p1.score >= 5 ? 'OYUNCU 1 KAZANDI' : 'OYUNCU 2 KAZANDI';
+    setTimeout(() => { p1.score = 0; p2.score = 0; msg.classList.remove('show'); resetBall(1); }, 2500);
+  }
+}
+
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#222';
+  ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = '#333';
+  ctx.setLineDash([20, 20]);
+  ctx.beginPath();
+  ctx.moveTo(W/2, 0);
+  ctx.lineTo(W/2, H);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.fillStyle = p1.color;
+  ctx.fillRect(p1.x, p1.y, p1.w, p1.h);
+  ctx.fillStyle = p2.color;
+  ctx.fillRect(p2.x, p2.y, p2.w, p2.h);
+
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI*2);
+  ctx.fill();
+}
+
+function loop() { update(); draw(); requestAnimationFrame(loop); }
+resetBall(1);
+loop();
+</script>
+</body>
+</html>
