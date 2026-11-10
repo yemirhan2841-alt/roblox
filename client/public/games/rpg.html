@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cosmic RPG - Demo</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; overflow: hidden; background: #0a0a12; font-family: system-ui, sans-serif; color: #fff; }
+canvas { display: block; margin: 0 auto; background: #050508; border: 2px solid #222; }
+#ui { position: absolute; top: 12px; left: 12px; font-size: 16px; font-weight: 800; text-shadow: 1px 1px 0 #000; pointer-events: none; }
+#hint { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); font-size: 13px; color: #aaa; text-shadow: 1px 1px 0 #000; pointer-events: none; }
+</style>
+</head>
+<body>
+<div id="ui">Can: <span id="hp">100</span> &nbsp;|&nbsp; Xörek: <span id="xp">0</span> &nbsp;|&nbsp; Seviye: <span id="lvl">1</span></div>
+<div id="hint">Oklar / WASD: hareket · Boşluk: Saldır</div>
+<canvas id="c"></canvas>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let W, H;
+function resize(){ W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+window.addEventListener('resize', resize);
+resize();
+
+const keys = {};
+window.addEventListener('keydown', e => keys[e.code] = true);
+window.addEventListener('keyup', e => keys[e.code] = false);
+
+let hp = 100, xp = 0, lvl = 1;
+const ui = { hp: document.getElementById('hp'), xp: document.getElementById('xp'), lvl: document.getElementById('lvl') };
+
+const player = { x: 100, y: H/2, w: 30, h: 30, vx: 0, vy: 0, dir: 1, color: '#ff0055' };
+let enemies = [];
+let lastShot = 0;
+
+function spawnEnemy() {
+  enemies.push({
+    x: W + 40, y: Math.random() * (H - 60), w: 34, h: 34,
+    hp: 30 + lvl * 10, maxHp: 30 + lvl * 10,
+    vx: -(2 + Math.random() * 3 + lvl * 0.5),
+    color: '#00d26a'
+  });
+}
+let enemyTimer = 0;
+
+function update() {
+  const speed = 5;
+  if (keys['ArrowRight'] || keys['KeyD']) { player.x += speed; player.dir = 1; }
+  if (keys['ArrowLeft'] || keys['KeyA']) { player.x -= speed; player.dir = -1; }
+  if (keys['ArrowUp'] || keys['KeyW']) player.y -= speed;
+  if (keys['ArrowDown'] || keys['KeyS']) player.y += speed;
+  player.x = Math.max(0, Math.min(W - player.w, player.x));
+  player.y = Math.max(0, Math.min(H - player.h, player.y));
+
+  if ((keys['Space'] || keys['Enter']) && Date.now() - lastShot > 400) {
+    lastShot = Date.now();
+    enemies.forEach(e => {
+      const dx = (e.x + e.w/2) - (player.x + player.w/2);
+      const dy = (e.y + e.h/2) - (player.y + player.h/2);
+      const dist = Math.hypot(dx, dy);
+      if (dist < 220) { e.hp -= 20 + lvl * 5; xp += 5; }
+    });
+  }
+
+  enemyTimer++;
+  if (enemyTimer > 90 - lvl * 5) { enemyTimer = 0; spawnEnemy(); }
+
+  for (let i = enemies.length - 1; i >= 0; i--) {
+    const e = enemies[i];
+    e.x += e.vx;
+    if (e.x + e.w < 0) { enemies.splice(i, 1); hp -= 10; }
+    const pr = { x: player.x, y: player.y, w: player.w, h: player.h };
+    const er = { x: e.x, y: e.y, w: e.w, h: e.h };
+    if (pr.x < er.x + er.w && pr.x + pr.w > er.x && pr.y < er.y + er.h && pr.y + pr.h > er.y) {
+      hp -= 1;
+      enemies.splice(i, 1);
+    }
+    if (e.hp <= 0) { enemies.splice(i, 1); xp += 15; }
+  }
+
+  while (xp >= lvl * 50) { xp -= lvl * 50; lvl++; hp = Math.min(100, hp + 20); }
+
+  if (hp <= 0) { hp = 100; xp = 0; lvl = 1; enemies = []; }
+
+  ui.hp.textContent = Math.max(0, Math.floor(hp));
+  ui.xp.textContent = xp;
+  ui.lvl.textContent = lvl;
+}
+
+function draw() {
+  ctx.fillStyle = '#050508';
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = player.color;
+  ctx.fillRect(player.x, player.y, player.w, player.h);
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(player.x + player.dir * 20, player.y + 8, 6, 6);
+
+  enemies.forEach(e => {
+    ctx.fillStyle = e.color;
+    ctx.fillRect(e.x, e.y, e.w, e.h);
+    ctx.fillStyle = '#ff0055';
+    ctx.fillRect(e.x, e.y - 8, e.w * (e.hp / e.maxHp), 6);
+    ctx.strokeStyle = '#000';
+    ctx.strokeRect(e.x, e.y - 8, e.w, 6);
+  });
+}
+
+function loop() { update(); draw(); requestAnimationFrame(loop); }
+loop();
+</script>
+</body>
+</html>
