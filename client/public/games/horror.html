@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dark Maze - Demo</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; overflow: hidden; background: #000; font-family: system-ui, sans-serif; color: #fff; }
+canvas { display: block; margin: 0 auto; background: #000; }
+#ui { position: absolute; top: 12px; left: 12px; font-size: 16px; font-weight: 800; color: #ff0055; text-shadow: 0 0 10px #ff0055; pointer-events: none; }
+#hint { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); font-size: 13px; color: #555; pointer-events: none; }
+</style>
+</head>
+<body>
+<div id="ui">Çıkışı bul</div>
+<div id="hint">Oklar / WASD · El fenerinle görün</div>
+<canvas id="c"></canvas>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let W, H;
+function resize(){ W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+window.addEventListener('resize', resize);
+resize();
+
+const keys = {};
+window.addEventListener('keydown', e => keys[e.code] = true);
+window.addEventListener('keyup', e => keys[e.code] = false);
+
+const player = { x: 60, y: 60, w: 20, h: 20, vx: 0, vy: 0, color: '#ff0055' };
+const goal = { x: W - 100, y: H - 100, w: 40, h: 40 };
+const walls = [
+  [150, 100, 20, 300], [400, H-420, 20, 300], [650, 100, 20, 300],
+  [200, 450, 300, 20], [500, 250, 300, 20], [800, 450, 200, 20],
+  [100, H-150, 200, 20], [W-350, H-150, 200, 20]
+];
+
+function rectIntersect(a, b) { return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y; }
+
+function update() {
+  const speed = 5;
+  if (keys['ArrowRight'] || keys['KeyD']) player.x += speed;
+  if (keys['ArrowLeft'] || keys['KeyA']) player.x -= speed;
+  if (keys['ArrowUp'] || keys['KeyW']) player.y -= speed;
+  if (keys['ArrowDown'] || keys['KeyS']) player.y += speed;
+
+  const pr = { x: player.x, y: player.y, w: player.w, h: player.h };
+  for (const w of walls) {
+    const r = { x: w[0], y: w[1], w: w[2], h: w[3] };
+    if (rectIntersect(pr, r)) {
+      if (keys['ArrowRight'] || keys['KeyD']) player.x -= speed;
+      if (keys['ArrowLeft'] || keys['KeyA']) player.x += speed;
+      if (keys['ArrowUp'] || keys['KeyW']) player.y += speed;
+      if (keys['ArrowDown'] || keys['KeyS']) player.y -= speed;
+    }
+  }
+  player.x = Math.max(0, Math.min(W - player.w, player.x));
+  player.y = Math.max(0, Math.min(H - player.h, player.y));
+}
+
+function draw() {
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.fillStyle = '#111';
+  walls.forEach(w => ctx.fillRect(w[0], w[1], w[2], w[3]));
+
+  ctx.fillStyle = '#ffd700';
+  ctx.fillRect(goal.x, goal.y, goal.w, goal.h);
+
+  ctx.fillStyle = player.color;
+  ctx.fillRect(player.x, player.y, player.w, player.h);
+
+  const grad = ctx.createRadialGradient(player.x + player.w/2, player.y + player.h/2, 10, player.x + player.w/2, player.y + player.h/2, 300);
+  grad.addColorStop(0, 'rgba(255,255,255,0.35)');
+  grad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  const pr = { x: player.x, y: player.y, w: player.w, h: player.h };
+  if (rectIntersect(pr, goal)) {
+    ctx.fillStyle = '#ff0055';
+    ctx.font = 'bold 40px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText('Kurtuldun!', W/2, H/2);
+    setTimeout(() => { player.x = 60; player.y = 60; }, 1500);
+  }
+}
+
+function loop() { update(); draw(); requestAnimationFrame(loop); }
+loop();
+</script>
+</body>
+</html>
